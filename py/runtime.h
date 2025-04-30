@@ -28,14 +28,14 @@
 
 #include "py/mpstate.h"
 #include "py/pystack.h"
-#include "py/stackctrl.h"
+#include "py/cstack.h"
 
-// For use with mp_call_function_1_from_nlr_jump_callback.
+// Initialize an nlr_jump_callback_node_call_function_1_t struct for use with
+// nlr_push_jump_callback(&ctx.callback, mp_call_function_1_from_nlr_jump_callback);
 #define MP_DEFINE_NLR_JUMP_CALLBACK_FUNCTION_1(ctx, f, a) \
-    nlr_jump_callback_node_call_function_1_t ctx = { \
-        .func = (void (*)(void *))(f), \
-        .arg = (a), \
-    }
+    nlr_jump_callback_node_call_function_1_t ctx; \
+    ctx.func = (void (*)(void *))(f); \
+    ctx.arg = (a)
 
 typedef enum {
     MP_VM_RETURN_NORMAL,
@@ -159,8 +159,7 @@ void mp_call_function_1_from_nlr_jump_callback(void *ctx_in);
 static inline void mp_thread_init_state(mp_state_thread_t *ts, size_t stack_size, mp_obj_dict_t *locals, mp_obj_dict_t *globals) {
     mp_thread_set_state(ts);
 
-    mp_stack_set_top(ts + 1); // need to include ts in root-pointer scan
-    mp_stack_set_limit(stack_size);
+    mp_cstack_init_with_top(ts + 1, stack_size); // need to include ts in root-pointer scan
 
     // GC starts off unlocked
     ts->gc_lock_depth = 0;
